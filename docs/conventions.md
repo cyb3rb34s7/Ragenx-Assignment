@@ -17,7 +17,7 @@ Every new session, every new module, every "let's pick this up again" — read t
 3. `docs/conventions.md` — this file.
 4. `docs/architecture.md` — system design and module map.
 
-Then `BUILD_EXERCISE_BRIEF.md` and the relevant module.
+Then the relevant module. (The exercise brief is held privately by the reviewers, not committed to this public repo.)
 
 **Why:** Re-reading costs seconds. Redoing a solved mistake costs hours and is the most demoralising waste.
 

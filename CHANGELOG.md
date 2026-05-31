@@ -4,6 +4,18 @@ Append-only, newest at top. Per-entry format in `docs/conventions.md §2.3`.
 
 ---
 
+## 2026-06-01 — remove proprietary brief/email from the public repo
+
+**What changed:** Removed `docs/BUILD_EXERCISE_BRIEF.md` and `docs/Email.md` from the repo (the company's hiring materials shouldn't be published in a public repo). Updated the dangling references in `CLAUDE.md` and `docs/conventions.md` to note the brief is held privately. The Claude Code session log is shared with the reviewers by email (not committed) for the same reason.
+
+**Why:** Privacy — the repo is public; the brief/email/transcript are the company's proprietary content. The brief itself permits sharing the session log by email instead of committing.
+
+**Files touched:** deleted `docs/BUILD_EXERCISE_BRIEF.md`, `docs/Email.md`; edited `CLAUDE.md`, `docs/conventions.md`.
+
+**Reverts cleanly?:** yes (the files remain in earlier git history).
+
+---
+
 ## 2026-06-01 — Phase 1B operability (Docker, compose, ops scripts, runbook)
 
 **What changed:** Added the operability layer. `backend/Dockerfile` — multi-stage (Temurin 17 JDK build → JRE runtime), non-root user, pinned base tags, layer-cached deps, HEALTHCHECK; `backend/.dockerignore`. `docker-compose.yml` — single service on 8412 with healthcheck + `init: true`. `ops/run.sh` (build|start|stop|test|logs|clean, `--help`, exit codes, Docker+Compose-v2 guards), `ops/backup.sh` (GET /cases → atomic timestamped snapshot, jq/curl guards, cron-safe), `ops/restore.sh` (PUT each case back verbatim, `--dry-run`, idempotent). `Makefile` (.PHONY delegation). Root `README.md` with the "Operations" runbook. Root `.gitattributes` forcing `eol=lf` on shell scripts. `build.gradle`: disabled the plain `jar` so only the bootable jar is produced.

@@ -14,7 +14,7 @@ Three deliverables in one repo:
 - `/ops` — Dockerfile, compose, shell scripts, Makefile, runbook. "Hand to an on-call engineer at 2am."
 - `/frontend` — React (Vite) + Tailwind + zustand + ky. The reviewer's screen. Built live.
 
-Full brief: `BUILD_EXERCISE_BRIEF.md`. Bootstrap data: `case_v1.json`.
+Bootstrap data: `backend/src/main/resources/case_v1.json`. The full exercise brief is held privately by the reviewers and is intentionally **not committed** to this public repo.
 
 ## Reading order before any work
 
@@ -22,7 +22,7 @@ Full brief: `BUILD_EXERCISE_BRIEF.md`. Bootstrap data: `case_v1.json`.
 2. `CHANGELOG.md` — what changed and why, dated. For reverting and tracing regressions.
 3. `docs/conventions.md` — the rulebook.
 4. `docs/architecture.md` — the system design and module map.
-5. Then the relevant module and `BUILD_EXERCISE_BRIEF.md`.
+5. Then the relevant module.
 
 ## Non-negotiable principles (full detail in `docs/conventions.md`)
 
