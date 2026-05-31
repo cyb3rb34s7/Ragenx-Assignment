@@ -10,6 +10,10 @@ spring:
     # Omit null fields: a success envelope drops `error`, an error envelope drops `data`,
     # and an untouched merged field omits `status` (semantically "untouched").
     default-property-inclusion: non_null
+    deserialization:
+      # Fail-closed: reject unknown fields in inbound payloads (follow-ups) rather than
+      # silently ignoring them. An unexpected key surfaces as a 400, never a silent drop.
+      fail-on-unknown-properties: true
   mvc:
     # Unknown routes raise NoHandlerFoundException so they render through our error envelope
     # instead of the default Whitelabel page.

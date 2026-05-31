@@ -6,7 +6,7 @@ Running state of the build. Read this first every session. Newest notes near the
 
 ## Now
 
-- `common/` layer + `health` module built and **verified** (build green; live curl on :8081 passed envelope/trace/404 checks). Next: the `cases` module.
+- `cases` module built, `/super-review`'d, fixes applied, and **verified** (build green, 24 tests; live curl confirmed GET v1 → POST follow-up → GET v2, plus 404/400 paths). Next: the `queries` module.
 - **Env note:** port **8080 is occupied by Docker** (`com.docker.backend` + WSL relay) on this machine. The app's committed port is 8080 (correct per brief); free 8080 (or stop the container) before the live session, or run with `--server.port=<n>`.
 
 ## Done
@@ -15,16 +15,15 @@ Running state of the build. Read this first every session. Newest notes near the
 - 2026-05-31 — Adapted prior project's `conventions.md` (Python/FastAPI) to this stack (Spring Boot / Gradle backend, React+Vite / Tailwind / zustand / ky frontend). Created `CLAUDE.md` and `docs/architecture.md` with diagrams. Iterated merge model (UPSERT + null status), dropped `diff_summary`, expanded data-model reasoning.
 - 2026-05-31 — Extracted the Initializr zip into `/backend`; moved spec/reference docs into `docs/` (kept `CLAUDE.md`/`CHANGELOG.md`/`context.md` at root per user); `case_v1.json` → `backend/src/main/resources/`; reference Java samples → `docs/reference/`. Added root `.gitignore`. `git init -b main` + remote `origin`.
 - 2026-05-31 — Downgraded scaffold from Boot 4.0.6 / Gradle 9.5.1 to Boot 3.4.2 / Gradle 8.12; fixed starter names (`web`, `test`). Initial 2 commits pushed to `origin/main`.
+- 2026-05-31 — Built `cases` module: `JsonLoader`, models (`ExtractedField`/`MergedField`/`CaseState`/`FollowUpRequest`), `CaseRepository` (atomic `compute`), pure `MergeService` (null→baseline + diff), `CaseSeeder`, `CaseService`, `CaseController`. Strict parsing (`fail-on-unknown-properties`). 24 tests green. Ran `/super-review` (no criticals); applied fixes: 404-before-validation (atomic), reason-code constants, seeder `case_id` guard, +4 tests (new-section, blank-value, null-section, invalid-leaf-on-unknown-case). Known gap (accepted): no concurrency test (#9) — atomicity is structural via `compute`.
 - 2026-05-31 — Wired `common/`: `ApiResponse`/`ApiError`/`ResponseFactory` envelope, `ErrorCode`/`ApiException`/`GlobalExceptionHandler`, `TraceIdFilter` + `TraceContext` (adapted `TraceIdGenerator`), `Constants`. `application.properties`→`application.yml` (port 8080, snake_case, non_null, trace-id log pattern). Added `health` module (`GET /health`). Tests: `TraceIdGeneratorTest`, `HealthControllerTest` (success/inbound-trace/404). Build green; live-curl verified on :8081.
 
 ## Next (ranked)
 
-1. `cases` module: models (`ExtractedField`, `MergedField`, `CaseState`, `FollowUpRequest`) → `CaseRepository` → `CaseSeeder` (load case_v1.json via a `JsonLoader`) → `GET /cases/{id}` → `MergeService` + `POST /cases/{id}/follow-ups` + ≥3 merge tests.
-2. `queries` module (`POST /queries`, `GET /queries?caseId=`), then backend README (4 curl examples).
+1. `queries` module (`POST /queries` with `{caseId, fieldPath, question}`, `GET /queries?caseId=`); `fieldPath` validated against the current case → `validation.invalid_field_path`.
+2. Backend README (4 curl examples — use `--data @file.json` to avoid the shell `§` gotcha below).
 3. Ops: Dockerfile, compose, scripts, Makefile, runbook.
 4. Frontend (live phase): theme → shared primitives → `case-review` module.
-
-Note: `JsonLoader` (common/util) still to be created with the `cases` slice (deferred from the common slice since nothing needed it yet).
 
 ## Build setup (confirmed 2026-05-31)
 
@@ -35,7 +34,7 @@ Note: `JsonLoader` (common/util) still to be created with the `cases` slice (def
 
 ## Problems & solutions
 
-_(none yet — record problem, root cause, solution, follow-up as they occur. Never repeat one.)_
+- **2026-05-31 — `curl -d` follow-up POSTs returned `validation.bad_format` on Windows.** Root cause: the `§` character in hand-typed `"source":"p.3 §2"` was mangled by the shell, producing invalid bytes Jackson couldn't parse — NOT a code bug (MockMvc tests with `§` pass; `§` loaded from `case_v1.json` serializes fine). Solution: use ASCII in ad-hoc curl, or `--data @payload.json` for README examples. Follow-up: README curl examples must use `--data @file.json`.
 
 ## Decisions
 
@@ -54,6 +53,17 @@ _(none yet — record problem, root cause, solution, follow-up as they occur. Ne
 - **2026-05-31 — `diff_summary` added to merged response (unprompted).** Cheap; makes frontend conflict-filter and counts trivial. Full-stack-coherence win.
 - **2026-05-31 — Frontend framework: Vite + React + TS.** Fastest cold start for a 45-min live build vs Next.js.
 - **2026-05-31 — Base Java package: `com.ragenx.pv`.** Matches repo name. Trivially changeable to `ai.parallelloop.pv`.
+
+## Cases module — confirmed decisions (2026-05-31)
+
+- **Follow-up shape grounded in the brief's two signals:** "same shape as the initial case" + a top-level `missing_fields` array. The authoritative payload is `case_v2_followup_payload.json`, shared only at the live session; Phase 1A uses a synthetic follow-up modeling those signals.
+- **Strict top-level parsing (user choice, fail-closed):** `FollowUpRequest` + `ExtractedField` use `@JsonIgnoreProperties(ignoreUnknown=false)`. Unknown top-level key OR extra leaf property → `HttpMessageNotReadableException` → `validation.bad_format` (400). **Caveat:** an unanticipated top-level key in the live payload would 400 mid-demo; flipping to tolerant is a one-annotation change if needed.
+- **Sections are open:** section/field names are free-form map keys, so follow-ups may carry fields/sections not in `case_v1` (the `new`-status path). Leaves are strict `{value, confidence, source}`.
+- **Body `case_id`/`version` modeled (for strict parsing) but ignored:** path is authoritative for id; version is server-managed (increments per follow-up).
+- **Case-level metadata** (`case_classification`/`extracted_at`/`source_document`) updated from the follow-up when present, retained otherwise.
+- **Status compares on `value` only:** same value + changed confidence/source → `unchanged`, with confidence/source refreshed to the follow-up's latest. Different value → `overridden` (+ `previous_value`).
+- **Test follow-up** mirrors `case_v1.json` + `missing_fields` and includes new + overridden + unchanged + untouched fields in one POST.
+- **Single pipeline for seed + follow-up (user's design):** bootstrap parses `case_v1.json` into the SAME `FollowUpRequest` model and runs it through the SAME `MergeService.merge`, so the whole pipeline is exercised on every boot. `merge(current, incoming)`: `current == null` → **baseline** (version 1, statuses null, no diff); `current != null` → diff merge (version+1). The 404-on-unknown-case guard lives ONLY in the follow-up endpoint path (inside `repo.compute`, atomic) so the endpoint never creates a case, but the seeder can. Repository owns the `ConcurrentHashMap` + atomic `compute`; `MergeService` is a pure function (no deps, easy unit tests); `CaseService` orchestrates (find/404, seedInitial, applyFollowUp).
 
 ## Open questions for the user
 

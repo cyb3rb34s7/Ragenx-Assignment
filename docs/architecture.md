@@ -122,7 +122,7 @@ sequenceDiagram
 
 ## 4. The merge — "the meaningful part"
 
-`POST /cases/{caseId}/follow-ups` **upserts** the follow-up onto the stored version, field by field — update an existing field, insert a new one — and returns the merged case with a per-field `status` and the surfaced `missing_fields`.
+`POST /cases/{caseId}/follow-ups` **upserts** the follow-up onto the stored version, field by field — update an existing field, insert a new one — and returns the merged case with a per-field `status` and the surfaced `missing_fields`. The merge is a **pure function** `merge(current, incoming)`: when `current` is null (no prior version) it produces the **baseline** (v1, all statuses null, no diff); otherwise it computes the per-field diff below. The flowchart shows the follow-up endpoint, which 404s on an unknown case; the baseline branch is reached only by the seeder (see §4.4).
 
 ```mermaid
 flowchart TD
@@ -187,7 +187,21 @@ flowchart TD
 - `status: "unchanged"` → follow-up re-sent the same value.
 - `status: null` → field was never in this follow-up (untouched). Note: with the backend's global `non_null` JSON inclusion, an untouched field's `status` is **omitted** from the payload rather than emitted as literal `null` — semantically identical; the frontend treats an absent `status` as untouched.
 - `status: "new"` → field inserted by the follow-up.
-- `missing_fields` → surfaced verbatim from the follow-up payload (brief requirement: fields the AI couldn't extract).
+- `missing_fields` → surfaced verbatim from the follow-up payload (brief requirement: fields the AI couldn't extract). **Optional**: absent in the payload (as in `case_v1.json`) → normalized to `[]`, so the response is consistent.
+
+### 4.4 Seeding reuses the same pipeline
+
+On startup, `CaseSeeder` parses `case_v1.json` into the **same** `FollowUpRequest` model (`case_v1.json` is the same shape; its missing `missing_fields` defaults to `[]`) and runs it through the **same** `MergeService.merge` with `current == null`, producing the baseline v1 (statuses null). This means **every boot exercises the full parse → merge → store pipeline**, and the "absent `missing_fields`" path is covered for free.
+
+```mermaid
+flowchart LR
+  J["case_v1.json"] --> P["JsonLoader → FollowUpRequest"]
+  P --> S["CaseService.seedInitial"]
+  S --> C["CaseRepository.compute(id, cur → merge(cur=null, parsed))"]
+  C --> V1["baseline CaseState v1 (statuses null) stored"]
+```
+
+The 404-on-unknown-case guard lives **only** in the follow-up endpoint path (inside `compute`, atomic), so the endpoint never creates a case while the seeder can. The repository owns the `ConcurrentHashMap` and performs the read-modify-write atomically via `compute`, keeping `CaseService`/`MergeService` stateless.
 
 ---
 
@@ -265,7 +279,8 @@ classDiagram
 
 ### 5.3 Storage & field paths
 
-- **Storage:** `CaseRepository` holds `Map<caseId, CaseState>` (current merged case). `QueryRepository` holds `Map<caseId, List<Query>>`. Both `ConcurrentHashMap`-backed.
+- **Storage:** `CaseRepository` holds `Map<caseId, CaseState>` (current merged case). `QueryRepository` holds `Map<caseId, List<Query>>`. Both `ConcurrentHashMap`-backed. The repository is the **only** stateful component; it performs the seed/follow-up read-modify-write **atomically** via `compute(caseId, current -> merge(current, incoming))`, so concurrent follow-ups can't clobber each other and the services stay stateless.
+- **Two services:** `MergeService` is a **pure** function (no deps → unit-testable with no mocks); `CaseService` orchestrates (find/404, `seedInitial`, `applyFollowUp`). See §4.4.
 - **`fieldPath`** for a query is `"<section>.<field>"`, e.g. `patient.weight_kg`. Validated against the current case; unknown path → `validation.invalid_field_path`.
 
 ---

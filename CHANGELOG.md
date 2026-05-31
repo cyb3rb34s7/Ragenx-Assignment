@@ -4,6 +4,22 @@ Append-only, newest at top. Per-entry format in `docs/conventions.md §2.3`.
 
 ---
 
+## 2026-05-31 — cases module (merge + seed + GET)
+
+**What changed:** Built the `cases` vertical slice. `GET /cases/{caseId}` returns the current merged case; `POST /cases/{caseId}/follow-ups` UPSERT-merges with per-field diff (`new`/`overridden`+`previous_value`/`unchanged`/untouched-null). On startup `CaseSeeder` loads `case_v1.json` through the SAME `FollowUpRequest` model and the SAME pure `MergeService.merge` (with `current=null` → baseline v1), so every boot exercises the full pipeline. `CaseRepository` is `ConcurrentHashMap`-backed with an atomic `compute` (seed/follow-up read-modify-write and the 404 guard both inside the atomic section). Added `common/util/JsonLoader` (fail-loud) and enabled `spring.jackson.deserialization.fail-on-unknown-properties` (strict, fail-closed). `MergeService` is a pure, stateless function; `CaseService` orchestrates; controllers thin.
+
+**Why:** Phase 1A core requirement — follow-up merge with diff annotations, in-memory, seeded from `case_v1.json`. Pipeline-reuse design (user's) so boot is self-testing.
+
+**Review:** Ran `/super-review` — no critical findings. Applied fixes: 404 precedence over leaf validation (moved inside the atomic guard), validation `reason` codes extracted to `Constants.ValidationReason`, `CaseSeeder` guard for a missing `case_id`, and +4 tests (brand-new section, blank value, null section, invalid-leaf-on-unknown-case). Accepted known gap: no concurrency test (#9) — atomicity is structural via `compute`.
+
+**Verification:** `gradlew clean build` SUCCESSFUL, 24 tests pass. Live curl (on :8081): GET v1 → POST follow-up (overridden+previous_value, new, unchanged, untouched) → GET v2 persisted; 404 on unknown case; 400 on invalid leaf and on unknown top-level field.
+
+**Files touched:** `backend/.../modules/cases/**`, `backend/.../common/util/JsonLoader.java`, `application.yml`, `docs/architecture.md`, `context.md`.
+
+**Reverts cleanly?:** yes.
+
+---
+
 ## 2026-05-31 — super-review pre-commit skill
 
 **What changed:** Added `.claude/skills/super-review/SKILL.md` — a project-level skill that spawns a read-only subagent to review uncommitted changes against `docs/conventions.md` before every commit. Adapted from a prior project's `/super-review`: dropped finance/webhook/session vectors, added vectors for this stack — Spring singleton shared-state concurrency, our response-envelope contract, no-silent-fallbacks, magic-strings/enums, vertical-slice boundaries, merge correctness, meaningful-tests-only, and frontend dumb-components/hooks.
