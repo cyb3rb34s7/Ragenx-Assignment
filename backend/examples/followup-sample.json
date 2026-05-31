@@ -1,0 +1,16 @@
+{
+  "case_id": "PV-2026-0451",
+  "case_classification": "significant",
+  "extracted_at": "2026-05-20T11:00:00Z",
+  "source_document": "follow_up_1_PV-2026-0451.pdf",
+  "sections": {
+    "patient": {
+      "weight_kg": { "value": "80", "confidence": 0.90, "source": "p.3 §2" }
+    },
+    "adverse_event": {
+      "outcome": { "value": "Recovered", "confidence": 0.83, "source": "p.5 §1" },
+      "recovery_date": { "value": "2026-04-01", "confidence": 0.88, "source": "p.5 §2" }
+    }
+  },
+  "missing_fields": ["adverse_event.causality_assessment"]
+}

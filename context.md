@@ -6,7 +6,7 @@ Running state of the build. Read this first every session. Newest notes near the
 
 ## Now
 
-- Backend feature-complete for Phase 1A: `health`, `cases`, `queries` all built, `/super-review`'d, and verified (31 tests green). Next: backend README with the 4 curl examples, then Phase 1B ops.
+- **Phase 1A complete:** all 5 endpoints + `backend/README.md` (run instructions, per-endpoint curl examples, error-code table, AI-tools note) done and verified (33 tests; README curls run against a live instance). Next: Phase 1B ops.
 - **Env note:** port **8080 is occupied by Docker** (`com.docker.backend` + WSL relay) on this machine. The app's committed port is 8080 (correct per brief); free 8080 (or stop the container) before the live session, or run with `--server.port=<n>`.
 
 ## Done
@@ -21,9 +21,8 @@ Running state of the build. Read this first every session. Newest notes near the
 
 ## Next (ranked)
 
-1. Backend README: 4 `curl` examples (one per endpoint — use `--data @file.json` to avoid the shell `§` gotcha below), run instructions, AI-tools note.
-2. Phase 1B ops: Dockerfile, docker-compose, `ops/run.sh|backup.sh|restore.sh`, Makefile, "Operations" runbook.
-3. Frontend (live phase): theme → shared primitives → `case-review` module.
+1. Phase 1B ops: Dockerfile, docker-compose, `ops/run.sh|backup.sh|restore.sh`, Makefile, "Operations" runbook.
+2. Frontend (live phase): theme → shared primitives → `case-review` module.
 
 ## Build setup (confirmed 2026-05-31)
 
@@ -34,6 +33,7 @@ Running state of the build. Read this first every session. Newest notes near the
 
 ## Problems & solutions
 
+- **2026-06-01 — README query curl example failed (`validation.bad_format`).** Root cause: wrote the body in camelCase (`caseId`/`fieldPath`), but the wire is snake_case (global Jackson `SNAKE_CASE`) + strict parsing, so `caseId`/`fieldPath` were unknown properties → 400. Caught by running the documented curls before commit. Solution: README uses snake_case (`case_id`/`field_path`) + a note that the brief's `{caseId,…}` maps to snake_case on the wire.
 - **2026-05-31 — `curl -d` follow-up POSTs returned `validation.bad_format` on Windows.** Root cause: the `§` character in hand-typed `"source":"p.3 §2"` was mangled by the shell, producing invalid bytes Jackson couldn't parse — NOT a code bug (MockMvc tests with `§` pass; `§` loaded from `case_v1.json` serializes fine). Solution: use ASCII in ad-hoc curl, or `--data @payload.json` for README examples. Follow-up: README curl examples must use `--data @file.json`.
 
 ## Decisions

@@ -4,6 +4,20 @@ Append-only, newest at top. Per-entry format in `docs/conventions.md §2.3`.
 
 ---
 
+## 2026-06-01 — backend README + run instructions
+
+**What changed:** Added `backend/README.md`: overview, stack, prerequisites, run/build/test instructions (incl. the port-override for the Docker-on-8080 case), response-envelope explanation, a `curl` example per endpoint (GET case, POST follow-up, POST query, GET queries, plus `/health`), an error-code table, notes/limitations, and an AI-assistance note. Added `backend/examples/followup-sample.json` (a realistic follow-up exercising overridden/new/unchanged + `missing_fields`) so the POST example is copy-pasteable via `--data @file` (keeps `§` intact).
+
+**Why:** Phase 1A deliverable — "README with 4 curl examples, one per endpoint" + runnable instructions.
+
+**Verification:** Ran every documented curl against a live instance. Caught and fixed a bug: the query example used camelCase (`caseId`/`fieldPath`) but the wire is snake_case — corrected to `case_id`/`field_path` with a clarifying note.
+
+**Files touched:** `backend/README.md`, `backend/examples/followup-sample.json`, `context.md`.
+
+**Reverts cleanly?:** yes — docs/example only.
+
+---
+
 ## 2026-06-01 — queries module (raise + list)
 
 **What changed:** Built the `queries` vertical slice. `POST /queries` raises a reviewer query `{caseId, fieldPath, question}` against a field (returns the stored `Query` with a UUID id); `GET /queries?caseId=` lists a case's queries in creation order. `QueryRepository` is `ConcurrentHashMap<caseId, List<Query>>` with an atomic `compute` append and immutable (`List.copyOf`) reads. `QueryService` checks case existence via `CaseService.findCase` (new non-throwing accessor) — cross-module access through the service, never the repo. Added a `MissingServletRequestParameterException` → 400 handler (missing `?caseId`). Removed the unused `VALIDATION_INVALID_FIELD_PATH` code.
