@@ -3,6 +3,8 @@ package com.ragenx.pv.modules.cases.repositories;
 import com.ragenx.pv.modules.cases.models.CaseState;
 import org.springframework.stereotype.Repository;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.UnaryOperator;
@@ -20,6 +22,19 @@ public class CaseRepository {
 
     public Optional<CaseState> find(String caseId) {
         return Optional.ofNullable(store.get(caseId));
+    }
+
+    /** All cases, ordered by id for a deterministic backup snapshot. */
+    public List<CaseState> findAll() {
+        return store.values().stream()
+                .sorted(Comparator.comparing(CaseState::getCaseId))
+                .toList();
+    }
+
+    /** Replace (or insert) a case verbatim — used by import/restore. Idempotent. */
+    public CaseState put(CaseState caseState) {
+        store.put(caseState.getCaseId(), caseState);
+        return caseState;
     }
 
     /**

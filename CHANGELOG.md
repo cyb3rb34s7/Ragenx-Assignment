@@ -4,6 +4,20 @@ Append-only, newest at top. Per-entry format in `docs/conventions.md §2.3`.
 
 ---
 
+## 2026-06-01 — list + import endpoints (backup/restore support) + port → 8412
+
+**What changed:** Added `GET /cases` (returns all cases — backup snapshot) and `PUT /cases/{caseId}` (imports/replaces a case with the exact `CaseState` verbatim — idempotent, version-preserving — for restore). Made `CaseState`/`MergedField` deserializable (`@Jacksonized`) and added a `@JsonCreator` to `FieldStatus` so a full case round-trips through JSON. `CaseRepository` gained `findAll()` (ordered) + `put()`; `CaseService` gained `getAll()` + `replace()` (path/body id-match guard → `validation.bad_format`). Changed the service port from 8080 → **8412** (8080 is a global Docker container on the dev machine).
+
+**Why:** To make backup/restore a faithful **exact-checkpoint** round-trip (not a lossy follow-up replay): backup snapshots the in-memory store as-is; restore reinstates each case verbatim including version, diff statuses, and previous_values. Decided with the user after analysing that derived fields can't be restored via the follow-up path.
+
+**Verification:** `gradlew clean build` SUCCESSFUL, 37 tests (4 new: list, PUT-verbatim, PUT-idempotent, PUT-mismatch). Live on :8412 — PUT a v7 checkpoint with an overridden field → GET returns it exactly (version, status, previous_value preserved).
+
+**Files touched:** `modules/cases/{controllers,services,repositories,models,constants}/**`, `application.yml`, `docs/architecture.md §6`, `backend/README.md`, `context.md`.
+
+**Reverts cleanly?:** yes.
+
+---
+
 ## 2026-06-01 — backend README + run instructions
 
 **What changed:** Added `backend/README.md`: overview, stack, prerequisites, run/build/test instructions (incl. the port-override for the Docker-on-8080 case), response-envelope explanation, a `curl` example per endpoint (GET case, POST follow-up, POST query, GET queries, plus `/health`), an error-code table, notes/limitations, and an AI-assistance note. Added `backend/examples/followup-sample.json` (a realistic follow-up exercising overridden/new/unchanged + `missing_fields`) so the POST example is copy-pasteable via `--data @file` (keeps `§` intact).

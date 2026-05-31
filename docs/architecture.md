@@ -289,13 +289,15 @@ classDiagram
 
 | # | Method & path | Purpose | Success data | Error codes |
 |---|---|---|---|---|
-| 1 | `GET /cases/{caseId}` | Latest version | `Case` | `case.not_found` |
+| 1 | `GET /cases/{caseId}` | Latest version | `CaseState` | `case.not_found` |
 | 2 | `POST /cases/{caseId}/follow-ups` | Merge follow-up | merged response (§4.3) | `case.not_found`, `case.invalid_follow_up`, `validation.*` |
 | 3 | `POST /queries` | Raise a query | created `Query` | `query.case_not_found`, `validation.missing_field` |
 | 4 | `GET /queries?caseId={id}` | List queries | `Query[]` | `validation.missing_field` |
 | 5 | `GET /health` | Liveness | `{status:"UP"}` | — |
+| 6 | `GET /cases` | **List all cases** (for backup) | `CaseState[]` | — |
+| 7 | `PUT /cases/{caseId}` | **Import/replace a case verbatim** (for restore) — idempotent, version-preserving | `CaseState` | `validation.bad_format` (path/body id mismatch) |
 
-All wrapped in the standard envelope (`conventions.md §4`).
+All wrapped in the standard envelope (`conventions.md §4`). Endpoints 6–7 were added in Phase 1B to make backup/restore a faithful, exact-checkpoint round-trip: `GET /cases` snapshots the in-memory store; `PUT /cases/{id}` replaces a case with the exact `CaseState` (version, statuses, `previous_value` and all), so restore reinstates the precise checkpoint rather than replaying a follow-up. `CaseState`/`MergedField` are therefore deserializable (`@Jacksonized`) and `FieldStatus` has a `@JsonCreator`.
 
 ---
 
@@ -341,7 +343,7 @@ flowchart LR
     MK[Makefile] --> RUN[run.sh]
     RUN -->|build/start/stop/logs/clean| DC[docker compose]
     DC --> IMG["image: multi-stage,<br/>non-root, pinned base"]
-    IMG --> SVC["service :8080<br/>/health"]
+    IMG --> SVC["service :8412<br/>/health"]
     BK[backup.sh] -->|curl+jq| SVC
     BK --> FILE["backups/cases_<ts>.json"]
     RS[restore.sh] -->|"POST (or --dry-run)"| SVC

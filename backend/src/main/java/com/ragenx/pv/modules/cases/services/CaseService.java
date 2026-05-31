@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -35,6 +36,30 @@ public class CaseService {
     /** Non-throwing lookup for cross-module callers (e.g. queries) that decide their own error. */
     public Optional<CaseState> findCase(String caseId) {
         return caseRepository.find(caseId);
+    }
+
+    /** All cases — used by backup. */
+    public List<CaseState> getAll() {
+        return caseRepository.findAll();
+    }
+
+    /**
+     * Replaces a case verbatim (import/restore). The body's case_id must match the path and the
+     * case must have at least one section. Leaf <em>content</em> (value/confidence/source) is
+     * trusted, not re-validated: this endpoint imports a snapshot the service itself produced via
+     * GET /cases, so deep leaf validation would be redundant (documented trust boundary — see
+     * README "Notes & limitations"). Strict JSON parsing still rejects malformed/unknown fields.
+     */
+    public CaseState replace(String caseId, CaseState caseState) {
+        if (caseState.getCaseId() == null || !caseState.getCaseId().equals(caseId)) {
+            throw new ApiException(ErrorCode.VALIDATION_BAD_FORMAT,
+                    "Path caseId must match the body case_id.");
+        }
+        if (caseState.getSections() == null || caseState.getSections().isEmpty()) {
+            throw new ApiException(ErrorCode.VALIDATION_BAD_FORMAT,
+                    "A case must have at least one section.");
+        }
+        return caseRepository.put(caseState);
     }
 
     /** Seeds the initial version (no prior case). Used at startup by the seeder. */

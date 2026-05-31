@@ -9,9 +9,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -161,6 +163,98 @@ class CaseControllerTest {
                 """;
         mockMvc.perform(post("/cases/{id}/follow-ups", CASE_ID)
                         .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code", is("validation.bad_format")));
+    }
+
+    @Test
+    void listCasesReturnsTheSeededCase() throws Exception {
+        mockMvc.perform(get("/cases"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(1)))
+                .andExpect(jsonPath("$.data[0].case_id", is(CASE_ID)))
+                .andExpect(jsonPath("$.data[0].version", is(1)));
+    }
+
+    @Test
+    void putReplacesCaseVerbatimForExactCheckpointRestore() throws Exception {
+        // A backed-up checkpoint: version 7, an overridden field carrying its previous_value.
+        String checkpoint = """
+                {
+                  "case_id": "PV-2026-0451",
+                  "version": 7,
+                  "case_classification": "significant",
+                  "extracted_at": "2026-05-20T11:00:00Z",
+                  "source_document": "restored.pdf",
+                  "sections": {
+                    "patient": {
+                      "weight_kg": { "value": "99", "confidence": 0.7, "source": "p9",
+                                     "status": "overridden",
+                                     "previous_value": { "value": "78", "confidence": 0.85, "source": "p3" } }
+                    }
+                  },
+                  "missing_fields": ["adverse_event.causality_assessment"]
+                }
+                """;
+        mockMvc.perform(put("/cases/{id}", CASE_ID).contentType(MediaType.APPLICATION_JSON).content(checkpoint))
+                .andExpect(status().isOk());
+
+        // GET must return the EXACT checkpoint — version, status, and previous_value preserved.
+        mockMvc.perform(get("/cases/{id}", CASE_ID))
+                .andExpect(jsonPath("$.data.version", is(7)))
+                .andExpect(jsonPath("$.data.sections.patient.weight_kg.status", is("overridden")))
+                .andExpect(jsonPath("$.data.sections.patient.weight_kg.previous_value.value", is("78")))
+                .andExpect(jsonPath("$.data.missing_fields[0]", is("adverse_event.causality_assessment")));
+    }
+
+    @Test
+    void putIsIdempotent() throws Exception {
+        String body = """
+                { "case_id": "PV-2026-0451", "version": 5,
+                  "sections": { "patient": { "age": { "value": "62", "confidence": 0.91, "source": "p2" } } },
+                  "missing_fields": [] }
+                """;
+        mockMvc.perform(put("/cases/{id}", CASE_ID).contentType(MediaType.APPLICATION_JSON).content(body));
+        mockMvc.perform(put("/cases/{id}", CASE_ID).contentType(MediaType.APPLICATION_JSON).content(body));
+
+        // Two identical PUTs leave the same state — version stays 5, not incremented.
+        mockMvc.perform(get("/cases/{id}", CASE_ID))
+                .andExpect(jsonPath("$.data.version", is(5)));
+    }
+
+    @Test
+    void putWithUnknownFieldStatusReturns400() throws Exception {
+        // The @JsonCreator on FieldStatus fails loud on an unknown wire value -> clean 400, not 500.
+        String body = """
+                { "case_id": "PV-2026-0451", "version": 1,
+                  "sections": { "patient": { "age": { "value": "62", "confidence": 0.9, "source": "p2", "status": "bogus" } } } }
+                """;
+        mockMvc.perform(put("/cases/{id}", CASE_ID).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code", is("validation.bad_format")));
+    }
+
+    @Test
+    void putCanInsertANewCase() throws Exception {
+        String body = """
+                { "case_id": "PV-9999", "version": 3,
+                  "sections": { "patient": { "age": { "value": "40", "confidence": 0.9, "source": "p1" } } },
+                  "missing_fields": [] }
+                """;
+        mockMvc.perform(put("/cases/{id}", "PV-9999").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/cases/{id}", "PV-9999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.version", is(3)));
+    }
+
+    @Test
+    void putWithMismatchedCaseIdReturns400() throws Exception {
+        String body = """
+                { "case_id": "PV-2026-0451", "version": 1,
+                  "sections": { "patient": { "age": { "value": "62", "confidence": 0.91, "source": "p2" } } } }
+                """;
+        mockMvc.perform(put("/cases/{id}", "OTHER").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code", is("validation.bad_format")));
     }

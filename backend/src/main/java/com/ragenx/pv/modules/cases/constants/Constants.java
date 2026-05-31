@@ -1,5 +1,6 @@
 package com.ragenx.pv.modules.cases.constants;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
@@ -42,6 +43,20 @@ public final class Constants {
         @JsonValue
         public String wire() {
             return wire;
+        }
+
+        /** Deserialize from the wire value (for case import/restore). Unknown value fails loud. */
+        @JsonCreator
+        public static FieldStatus fromWire(String wire) {
+            if (wire == null) {
+                return null;
+            }
+            for (FieldStatus status : values()) {
+                if (status.wire.equals(wire)) {
+                    return status;
+                }
+            }
+            throw new IllegalArgumentException("Unknown field status: " + wire);
         }
     }
 }

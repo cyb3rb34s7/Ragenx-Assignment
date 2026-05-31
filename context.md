@@ -6,8 +6,10 @@ Running state of the build. Read this first every session. Newest notes near the
 
 ## Now
 
-- **Phase 1A complete:** all 5 endpoints + `backend/README.md` (run instructions, per-endpoint curl examples, error-code table, AI-tools note) done and verified (33 tests; README curls run against a live instance). Next: Phase 1B ops.
-- **Env note:** port **8080 is occupied by Docker** (`com.docker.backend` + WSL relay) on this machine. The app's committed port is 8080 (correct per brief); free 8080 (or stop the container) before the live session, or run with `--server.port=<n>`.
+- Backend now has **7 endpoints** (added `GET /cases` list + `PUT /cases/{id}` import for faithful backup/restore). Port is **8412**. 37 tests green; exact-checkpoint restore verified live. **Building Phase 1B ops next** (Dockerfile, compose, run/backup/restore scripts, Makefile, runbook). Backend-endpoints commit pending `/super-review`.
+- **Known gap (accepted):** `CaseRepository.put` (PUT/import) and `compute` (follow-up/seed) are each atomic per key but not mutually serialized — a concurrent PUT + follow-up on the same case could lost-update. Acceptable: restore runs against a quiesced service, single in-memory case. Same class as the "no concurrency test" note.
+- **`jq` is NOT installed on this dev box** — `backup.sh`/`restore.sh` require it (and `curl`). The scripts will check for both and fail gracefully; the runbook lists them as prerequisites (install via choco/scoop/winget locally, or rely on the grader's Unix env).
+- **Port:** the service's known port is **8412** (changed from 8080 on 2026-06-01 — 8080 is permanently occupied by a global Docker container on the dev machine). All run/ops/README references use 8412.
 
 ## Done
 

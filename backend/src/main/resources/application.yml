@@ -1,5 +1,7 @@
 server:
-  port: 8080
+  # 8412 chosen to avoid 8080 (occupied by a global Docker container on the dev machine)
+  # and the other common dev ports (3000/8000/9090). This is the service's known port.
+  port: 8412
 
 spring:
   application:

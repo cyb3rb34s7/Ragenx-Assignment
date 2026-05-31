@@ -26,7 +26,7 @@ cd backend
 ./gradlew bootRun          # Windows: .\gradlew.bat bootRun
 ```
 
-The service starts on **http://localhost:8080**. On startup it loads `src/main/resources/case_v1.json` into memory as version 1 of case **`PV-2026-0451`** (you'll see `cases.seed.loaded caseId=PV-2026-0451 version=1` in the log).
+The service starts on **http://localhost:8412**. On startup it loads `src/main/resources/case_v1.json` into memory as version 1 of case **`PV-2026-0451`** (you'll see `cases.seed.loaded caseId=PV-2026-0451 version=1` in the log).
 
 **Port already in use?** Run on another port (everything below then uses that port):
 
@@ -58,12 +58,12 @@ Every response — success or error — has the same shape, so a client branches
 
 ## Endpoints
 
-Base URL: `http://localhost:8080`. The four functional endpoints (plus a liveness check) with one `curl` each:
+Base URL: `http://localhost:8412`. The four functional endpoints (plus a liveness check) with one `curl` each:
 
 ### 1. `GET /cases/{caseId}` — most recent version of a case
 
 ```bash
-curl -s http://localhost:8080/cases/PV-2026-0451
+curl -s http://localhost:8412/cases/PV-2026-0451
 ```
 Returns the current `CaseState` (v1 after a fresh start). Unknown case → `404 case.not_found`.
 
@@ -72,7 +72,7 @@ Returns the current `CaseState` (v1 after a fresh start). Unknown case → `404 
 Merges a follow-up (same shape as the initial case, plus optional top-level `missing_fields`) onto the stored version and returns the merged case with a per-field `status`: `new` (inserted), `overridden` (+ `previous_value`), `unchanged` (re-sent, same value), or omitted (untouched by this follow-up).
 
 ```bash
-curl -s -X POST http://localhost:8080/cases/PV-2026-0451/follow-ups \
+curl -s -X POST http://localhost:8412/cases/PV-2026-0451/follow-ups \
   -H "Content-Type: application/json" \
   --data @examples/followup-sample.json
 ```
@@ -83,7 +83,7 @@ The bundled `examples/followup-sample.json` overrides `patient.weight_kg` (78→
 ### 3. `POST /queries` — raise a reviewer query against a field
 
 ```bash
-curl -s -X POST http://localhost:8080/queries \
+curl -s -X POST http://localhost:8412/queries \
   -H "Content-Type: application/json" \
   -d '{"case_id":"PV-2026-0451","field_path":"adverse_event.onset_date","question":"Please confirm the onset date against the source."}'
 ```
@@ -94,15 +94,26 @@ Returns the stored query with a generated `id`. Unknown case → `404 query.case
 ### 4. `GET /queries?caseId={id}` — list a case's queries
 
 ```bash
-curl -s "http://localhost:8080/queries?caseId=PV-2026-0451"
+curl -s "http://localhost:8412/queries?caseId=PV-2026-0451"
 ```
 Returns queries in creation order (`[]` if none). Unknown case → `404`; missing `caseId` → `400`.
 
 ### Liveness — `GET /health`
 
 ```bash
-curl -s http://localhost:8080/health     # {"success":true,"data":{"status":"UP"},"trace_id":"..."}
+curl -s http://localhost:8412/health     # {"success":true,"data":{"status":"UP"},"trace_id":"..."}
 ```
+
+### Backup / restore support
+
+Two endpoints back the ops scripts (`ops/backup.sh`, `ops/restore.sh`):
+
+```bash
+curl -s http://localhost:8412/cases                 # list ALL cases (full CaseState[]) — used by backup
+curl -s -X PUT http://localhost:8412/cases/PV-2026-0451 \
+  -H "Content-Type: application/json" --data @cases-snapshot-item.json   # replace verbatim — used by restore
+```
+`PUT /cases/{caseId}` imports a `CaseState` **exactly as given** (version, statuses, `previous_value` and all) — idempotent and version-preserving, so restore reinstates the precise checkpoint. The body's `case_id` must match the path (else `400 validation.bad_format`).
 
 ## Error codes
 
@@ -121,6 +132,7 @@ curl -s http://localhost:8080/health     # {"success":true,"data":{"status":"UP"
 - **In-memory:** all state resets on restart; every startup re-seeds `PV-2026-0451` at v1. No database by design.
 - **No version history:** only the current merged version is kept; `previous_value` is the value immediately before the latest follow-up.
 - **`field_path` on a query is not structurally validated** (only non-blank): a reviewer may legitimately query a field the AI couldn't extract (one listed in `missing_fields`), and the UI sends a path it just rendered.
+- **`PUT /cases/{id}` is a trusted import.** It stores the provided `CaseState` verbatim and validates only structure (case_id match, at least one section) — it does **not** re-validate leaf content, because it's meant to restore a snapshot this service itself produced via `GET /cases`. Strict JSON parsing still rejects malformed/unknown fields. (It also accepts `status`/`previous_value` directly, by design, for exact-checkpoint restore.)
 - **No auth / no production logging pipeline** — out of scope per the brief.
 
 ## AI assistance
