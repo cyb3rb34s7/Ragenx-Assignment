@@ -1,0 +1,28 @@
+# Build output
+backend/build/
+backend/.gradle/
+frontend/dist/
+frontend/build/
+frontend/node_modules/
+
+# Ops runtime artifacts
+backups/
+ops/backups/
+
+# IDE / editor
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / env
+*.log
+.env
+.env.local
+
+# Claude Code session log is committed deliberately at /claude-code-session.jsonl (see brief),
+# so it is intentionally NOT ignored.
