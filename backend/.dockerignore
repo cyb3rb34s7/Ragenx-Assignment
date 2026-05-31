@@ -1,0 +1,10 @@
+# Keep the build context small — only ship what the image build needs.
+build/
+.gradle/
+.idea/
+*.iml
+*.md
+examples/
+.git
+.gitignore
+.gitattributes

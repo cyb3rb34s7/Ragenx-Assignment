@@ -6,7 +6,7 @@ Running state of the build. Read this first every session. Newest notes near the
 
 ## Now
 
-- Backend now has **7 endpoints** (added `GET /cases` list + `PUT /cases/{id}` import for faithful backup/restore). Port is **8412**. 37 tests green; exact-checkpoint restore verified live. **Building Phase 1B ops next** (Dockerfile, compose, run/backup/restore scripts, Makefile, runbook). Backend-endpoints commit pending `/super-review`.
+- **Phase 1A + 1B complete.** Backend: 7 endpoints, 39 tests. Ops: Dockerfile (multi-stage, non-root, pinned, 417 MB), docker-compose (+healthcheck, init), `ops/run.sh|backup.sh|restore.sh`, Makefile, root README "Operations" runbook. All `/super-review`'d. Verified live: `docker compose build` + container healthy in 3s + full backup→overwrite→restore round-trip (exact checkpoint). Next: Phase 2 frontend (live).
 - **Known gap (accepted):** `CaseRepository.put` (PUT/import) and `compute` (follow-up/seed) are each atomic per key but not mutually serialized — a concurrent PUT + follow-up on the same case could lost-update. Acceptable: restore runs against a quiesced service, single in-memory case. Same class as the "no concurrency test" note.
 - **`jq` is NOT installed on this dev box** — `backup.sh`/`restore.sh` require it (and `curl`). The scripts will check for both and fail gracefully; the runbook lists them as prerequisites (install via choco/scoop/winget locally, or rely on the grader's Unix env).
 - **Port:** the service's known port is **8412** (changed from 8080 on 2026-06-01 — 8080 is permanently occupied by a global Docker container on the dev machine). All run/ops/README references use 8412.
@@ -23,8 +23,8 @@ Running state of the build. Read this first every session. Newest notes near the
 
 ## Next (ranked)
 
-1. Phase 1B ops: Dockerfile, docker-compose, `ops/run.sh|backup.sh|restore.sh`, Makefile, "Operations" runbook.
-2. Frontend (live phase): theme → shared primitives → `case-review` module.
+1. Frontend (Phase 2, live): theme → shared primitives → `case-review` module.
+2. After the live session: commit the Claude Code session log to `/claude-code-session.jsonl`.
 
 ## Build setup (confirmed 2026-05-31)
 

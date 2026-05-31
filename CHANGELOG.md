@@ -4,6 +4,22 @@ Append-only, newest at top. Per-entry format in `docs/conventions.md §2.3`.
 
 ---
 
+## 2026-06-01 — Phase 1B operability (Docker, compose, ops scripts, runbook)
+
+**What changed:** Added the operability layer. `backend/Dockerfile` — multi-stage (Temurin 17 JDK build → JRE runtime), non-root user, pinned base tags, layer-cached deps, HEALTHCHECK; `backend/.dockerignore`. `docker-compose.yml` — single service on 8412 with healthcheck + `init: true`. `ops/run.sh` (build|start|stop|test|logs|clean, `--help`, exit codes, Docker+Compose-v2 guards), `ops/backup.sh` (GET /cases → atomic timestamped snapshot, jq/curl guards, cron-safe), `ops/restore.sh` (PUT each case back verbatim, `--dry-run`, idempotent). `Makefile` (.PHONY delegation). Root `README.md` with the "Operations" runbook. Root `.gitattributes` forcing `eol=lf` on shell scripts. `build.gradle`: disabled the plain `jar` so only the bootable jar is produced.
+
+**Why:** Phase 1B — make the service operable ("hand to an on-call engineer at 2am").
+
+**Review:** `/super-review` flagged one CRITICAL (the `COPY *.jar` glob could match a `-plain.jar`) — fixed by disabling the plain jar. Applied the medium/low fixes too: atomic backup write (temp+mv), `.data` array validation, Compose-v2 guard in run.sh, `init: true`, `.gitattributes` LF enforcement, and a runbook note on idempotent restore re-runs.
+
+**Verification:** `docker compose build` SUCCESSFUL (417 MB image); container healthy in ~3s; `/health` + `/cases` respond; full `backup → overwrite → restore` round-trip reinstates the exact checkpoint; scripts fail gracefully without jq. Backend `gradlew clean build` still green (39 tests, single jar).
+
+**Files touched:** `backend/Dockerfile`, `backend/.dockerignore`, `docker-compose.yml`, `ops/*.sh`, `Makefile`, `README.md`, `.gitattributes`, `backend/build.gradle`, `context.md`.
+
+**Reverts cleanly?:** yes.
+
+---
+
 ## 2026-06-01 — list + import endpoints (backup/restore support) + port → 8412
 
 **What changed:** Added `GET /cases` (returns all cases — backup snapshot) and `PUT /cases/{caseId}` (imports/replaces a case with the exact `CaseState` verbatim — idempotent, version-preserving — for restore). Made `CaseState`/`MergedField` deserializable (`@Jacksonized`) and added a `@JsonCreator` to `FieldStatus` so a full case round-trips through JSON. `CaseRepository` gained `findAll()` (ordered) + `put()`; `CaseService` gained `getAll()` + `replace()` (path/body id-match guard → `validation.bad_format`). Changed the service port from 8080 → **8412** (8080 is a global Docker container on the dev machine).

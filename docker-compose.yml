@@ -1,0 +1,16 @@
+services:
+  pv-backend:
+    build:
+      context: ./backend
+    image: pv-backend:local
+    container_name: pv-backend
+    init: true                   # proper PID 1 (signal forwarding + zombie reaping)
+    ports:
+      - "8412:8412"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8412/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s          # JVM warmup grace before the service is considered unhealthy
+    restart: unless-stopped

@@ -31,3 +31,9 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// Only produce the bootable jar — disable the plain library jar so build/libs/ holds exactly
+// one artifact (keeps the Docker COPY glob unambiguous, regardless of which task runs).
+tasks.named('jar') {
+	enabled = false
+}
