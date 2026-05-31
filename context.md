@@ -6,24 +6,25 @@ Running state of the build. Read this first every session. Newest notes near the
 
 ## Now
 
-- Spring Boot project scaffolded into `/backend`, downgraded to Boot 3.4.2 + Gradle 8.12. **Build verification in progress.** Next: wire `common/` then the `cases` module.
-- Repo structure finalized; git initialized on `main`, remote `origin` connected. Not yet pushed.
+- `common/` layer + `health` module built and **verified** (build green; live curl on :8081 passed envelope/trace/404 checks). Next: the `cases` module.
+- **Env note:** port **8080 is occupied by Docker** (`com.docker.backend` + WSL relay) on this machine. The app's committed port is 8080 (correct per brief); free 8080 (or stop the container) before the live session, or run with `--server.port=<n>`.
 
 ## Done
 
 - 2026-05-31 — Read the brief (`BUILD_EXERCISE_BRIEF.md`), email, and `case_v1.json` end to end; explained requirements back to the user.
 - 2026-05-31 — Adapted prior project's `conventions.md` (Python/FastAPI) to this stack (Spring Boot / Gradle backend, React+Vite / Tailwind / zustand / ky frontend). Created `CLAUDE.md` and `docs/architecture.md` with diagrams. Iterated merge model (UPSERT + null status), dropped `diff_summary`, expanded data-model reasoning.
 - 2026-05-31 — Extracted the Initializr zip into `/backend`; moved spec/reference docs into `docs/` (kept `CLAUDE.md`/`CHANGELOG.md`/`context.md` at root per user); `case_v1.json` → `backend/src/main/resources/`; reference Java samples → `docs/reference/`. Added root `.gitignore`. `git init -b main` + remote `origin`.
-- 2026-05-31 — Downgraded scaffold from Boot 4.0.6 / Gradle 9.5.1 to Boot 3.4.2 / Gradle 8.12; fixed starter names (`web`, `test`).
+- 2026-05-31 — Downgraded scaffold from Boot 4.0.6 / Gradle 9.5.1 to Boot 3.4.2 / Gradle 8.12; fixed starter names (`web`, `test`). Initial 2 commits pushed to `origin/main`.
+- 2026-05-31 — Wired `common/`: `ApiResponse`/`ApiError`/`ResponseFactory` envelope, `ErrorCode`/`ApiException`/`GlobalExceptionHandler`, `TraceIdFilter` + `TraceContext` (adapted `TraceIdGenerator`), `Constants`. `application.properties`→`application.yml` (port 8080, snake_case, non_null, trace-id log pattern). Added `health` module (`GET /health`). Tests: `TraceIdGeneratorTest`, `HealthControllerTest` (success/inbound-trace/404). Build green; live-curl verified on :8081.
 
 ## Next (ranked)
 
-1. Confirm scaffold builds; commit (docs + boilerplate) and push when user approves.
-2. Wire `common/` (envelope `ApiResponse<T>`, `ErrorCode`, `GlobalExceptionHandler`, `TraceIdFilter`, `JsonLoader`); relocate/adapt `TraceIdGenerator` into `common/util/`; Jackson snake_case config; convert `application.properties` → `application.yml`.
-3. `cases` module: models → repository → `CaseSeeder` (load case_v1.json) → `GET /cases` → merge + `POST /follow-ups` + tests.
-4. `queries` module, then `health`, then backend README (4 curl examples).
-5. Ops: Dockerfile, compose, scripts, Makefile, runbook.
-6. Frontend (live phase): theme → shared primitives → `case-review` module.
+1. `cases` module: models (`ExtractedField`, `MergedField`, `CaseState`, `FollowUpRequest`) → `CaseRepository` → `CaseSeeder` (load case_v1.json via a `JsonLoader`) → `GET /cases/{id}` → `MergeService` + `POST /cases/{id}/follow-ups` + ≥3 merge tests.
+2. `queries` module (`POST /queries`, `GET /queries?caseId=`), then backend README (4 curl examples).
+3. Ops: Dockerfile, compose, scripts, Makefile, runbook.
+4. Frontend (live phase): theme → shared primitives → `case-review` module.
+
+Note: `JsonLoader` (common/util) still to be created with the `cases` slice (deferred from the common slice since nothing needed it yet).
 
 ## Build setup (confirmed 2026-05-31)
 

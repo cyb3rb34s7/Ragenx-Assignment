@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: pv
+  jackson:
+    # snake_case on the wire (case_id, trace_id, previous_value, ...) <-> camelCase in Java.
+    property-naming-strategy: SNAKE_CASE
+    # Omit null fields: a success envelope drops `error`, an error envelope drops `data`,
+    # and an untouched merged field omits `status` (semantically "untouched").
+    default-property-inclusion: non_null
+  mvc:
+    # Unknown routes raise NoHandlerFoundException so they render through our error envelope
+    # instead of the default Whitelabel page.
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
+
+logging:
+  level:
+    root: info
+  pattern:
+    # Human-readable, with the per-request trace id bracketed on every line.
+    console: "%d{HH:mm:ss.SSS} %-5level [%X{traceId}] %logger{36} - %msg%n"

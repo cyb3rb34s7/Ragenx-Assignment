@@ -4,6 +4,20 @@ Append-only, newest at top. Per-entry format in `docs/conventions.md §2.3`.
 
 ---
 
+## 2026-05-31 — common/ layer + health endpoint
+
+**What changed:** Built the cross-cutting `common/` layer: response envelope (`ApiResponse<T>`, `ApiError`, `ResponseFactory`), error handling (`ErrorCode` enum, `ApiException`, `GlobalExceptionHandler` with `@RestControllerAdvice`), trace propagation (`TraceIdFilter` + `TraceContext` MDC wrapper, `TraceIdGenerator` adapted from `docs/reference/` into `common/util`), and `Constants`. Replaced `application.properties` with `application.yml` (port 8080, Jackson `SNAKE_CASE` + `non_null`, `throw-exception-if-no-handler-found`, trace-id log pattern). Added the `health` module (`GET /health`) as the first consumer. Tests: `TraceIdGeneratorTest` (id format) and `HealthControllerTest` (success envelope + trace generation + inbound-trace honoring + 404 error envelope).
+
+**Why:** Every feature module depends on this contract (envelope, errors, trace) per `docs/conventions.md §4–§7` and `docs/architecture.md §3.1`. Health wired now so the contract is verifiable end-to-end immediately.
+
+**Verification:** `gradlew clean build` SUCCESSFUL (all tests pass); live `curl` on :8081 confirmed 200 success envelope with generated `X-Trace-Id`, inbound trace honored, and 404 error envelope.
+
+**Files touched:** `backend/src/main/java/com/ragenx/pv/common/**`, `.../modules/health/controllers/HealthController.java`, `backend/src/main/resources/application.yml`, tests, `docs/architecture.md §4.3`.
+
+**Reverts cleanly?:** yes.
+
+---
+
 ## 2026-05-31 — Scaffold, repo reorg, git connect, Boot downgrade
 
 **What changed:** Extracted the Spring Initializr zip into `/backend`. Reorganized the repo to its target shape: spec/reference docs into `docs/` (with `docs/reference/` for the prior-project Java samples), `case_v1.json` into `backend/src/main/resources/`, operational files (`CLAUDE.md`, `CHANGELOG.md`, `context.md`) kept at root per user decision. Added root `.gitignore`. Initialized git on `main` and connected remote `origin` (cyb3rb34s7/Ragenx-Assignment). Downgraded the scaffold from Spring Boot 4.0.6 / Gradle 9.5.1 to **Spring Boot 3.4.2 / Gradle 8.12**, replacing the SB4 modular starters (`spring-boot-starter-webmvc`, `*-webmvc-test`, `*-validation-test`) with the standard `spring-boot-starter-web` + `spring-boot-starter-test`.

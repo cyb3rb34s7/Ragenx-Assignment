@@ -185,7 +185,7 @@ flowchart TD
 
 - `status: "overridden"` → updated, carries `previous_value`.
 - `status: "unchanged"` → follow-up re-sent the same value.
-- `status: null` → field was never in this follow-up (untouched).
+- `status: null` → field was never in this follow-up (untouched). Note: with the backend's global `non_null` JSON inclusion, an untouched field's `status` is **omitted** from the payload rather than emitted as literal `null` — semantically identical; the frontend treats an absent `status` as untouched.
 - `status: "new"` → field inserted by the follow-up.
 - `missing_fields` → surfaced verbatim from the follow-up payload (brief requirement: fields the AI couldn't extract).
 
