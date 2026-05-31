@@ -4,6 +4,18 @@ Append-only, newest at top. Per-entry format in `docs/conventions.md §2.3`.
 
 ---
 
+## 2026-05-31 — super-review pre-commit skill
+
+**What changed:** Added `.claude/skills/super-review/SKILL.md` — a project-level skill that spawns a read-only subagent to review uncommitted changes against `docs/conventions.md` before every commit. Adapted from a prior project's `/super-review`: dropped finance/webhook/session vectors, added vectors for this stack — Spring singleton shared-state concurrency, our response-envelope contract, no-silent-fallbacks, magic-strings/enums, vertical-slice boundaries, merge correctness, meaningful-tests-only, and frontend dumb-components/hooks.
+
+**Why:** User wants an enforced review gate before commits, with explicit focus on unnecessary fallbacks and class/instance-field state that breaks concurrent requests.
+
+**Files touched:** `.claude/skills/super-review/SKILL.md`.
+
+**Reverts cleanly?:** yes.
+
+---
+
 ## 2026-05-31 — common/ layer + health endpoint
 
 **What changed:** Built the cross-cutting `common/` layer: response envelope (`ApiResponse<T>`, `ApiError`, `ResponseFactory`), error handling (`ErrorCode` enum, `ApiException`, `GlobalExceptionHandler` with `@RestControllerAdvice`), trace propagation (`TraceIdFilter` + `TraceContext` MDC wrapper, `TraceIdGenerator` adapted from `docs/reference/` into `common/util`), and `Constants`. Replaced `application.properties` with `application.yml` (port 8080, Jackson `SNAKE_CASE` + `non_null`, `throw-exception-if-no-handler-found`, trace-id log pattern). Added the `health` module (`GET /health`) as the first consumer. Tests: `TraceIdGeneratorTest` (id format) and `HealthControllerTest` (success envelope + trace generation + inbound-trace honoring + 404 error envelope).
