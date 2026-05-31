@@ -4,6 +4,22 @@ Append-only, newest at top. Per-entry format in `docs/conventions.md §2.3`.
 
 ---
 
+## 2026-06-01 — queries module (raise + list)
+
+**What changed:** Built the `queries` vertical slice. `POST /queries` raises a reviewer query `{caseId, fieldPath, question}` against a field (returns the stored `Query` with a UUID id); `GET /queries?caseId=` lists a case's queries in creation order. `QueryRepository` is `ConcurrentHashMap<caseId, List<Query>>` with an atomic `compute` append and immutable (`List.copyOf`) reads. `QueryService` checks case existence via `CaseService.findCase` (new non-throwing accessor) — cross-module access through the service, never the repo. Added a `MissingServletRequestParameterException` → 400 handler (missing `?caseId`). Removed the unused `VALIDATION_INVALID_FIELD_PATH` code.
+
+**Why:** Phase 1A endpoints 3–4. Kept deliberately lean per user direction: a query is a persisted note; no `created_at`, no provenance/trace field on the query, and **no field-path structural validation** (a reviewer may query a `missing_fields` entry, and the UI sends a path it just rendered) — `fieldPath` is `@NotBlank` only.
+
+**Review:** `/super-review` found no critical/high *code* defects. Flagged doc-drift (the docs still claimed field-path validation) — fixed in `architecture.md §5.3/§6`, `conventions.md §4.3`, `context.md`, and the skill. Added a `QueryRepositoryTest` locking the immutable-snapshot + insertion-order invariant.
+
+**Verification:** `gradlew clean build` SUCCESSFUL, 31 tests. Live curl: POST valid → 200 (UUID id); GET lists it; unknown case → 404 `query.case_not_found`; blank question → 400; missing `caseId` → 400.
+
+**Files touched:** `backend/.../modules/queries/**`, `CaseService.java`, `GlobalExceptionHandler.java`, `ErrorCode.java`, `docs/architecture.md`, `docs/conventions.md`, `context.md`, `.claude/skills/super-review/SKILL.md`.
+
+**Reverts cleanly?:** yes.
+
+---
+
 ## 2026-05-31 — cases module (merge + seed + GET)
 
 **What changed:** Built the `cases` vertical slice. `GET /cases/{caseId}` returns the current merged case; `POST /cases/{caseId}/follow-ups` UPSERT-merges with per-field diff (`new`/`overridden`+`previous_value`/`unchanged`/untouched-null). On startup `CaseSeeder` loads `case_v1.json` through the SAME `FollowUpRequest` model and the SAME pure `MergeService.merge` (with `current=null` → baseline v1), so every boot exercises the full pipeline. `CaseRepository` is `ConcurrentHashMap`-backed with an atomic `compute` (seed/follow-up read-modify-write and the 404 guard both inside the atomic section). Added `common/util/JsonLoader` (fail-loud) and enabled `spring.jackson.deserialization.fail-on-unknown-properties` (strict, fail-closed). `MergeService` is a pure, stateless function; `CaseService` orchestrates; controllers thin.

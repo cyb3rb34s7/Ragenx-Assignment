@@ -6,7 +6,7 @@ Running state of the build. Read this first every session. Newest notes near the
 
 ## Now
 
-- `cases` module built, `/super-review`'d, fixes applied, and **verified** (build green, 24 tests; live curl confirmed GET v1 → POST follow-up → GET v2, plus 404/400 paths). Next: the `queries` module.
+- Backend feature-complete for Phase 1A: `health`, `cases`, `queries` all built, `/super-review`'d, and verified (31 tests green). Next: backend README with the 4 curl examples, then Phase 1B ops.
 - **Env note:** port **8080 is occupied by Docker** (`com.docker.backend` + WSL relay) on this machine. The app's committed port is 8080 (correct per brief); free 8080 (or stop the container) before the live session, or run with `--server.port=<n>`.
 
 ## Done
@@ -15,15 +15,15 @@ Running state of the build. Read this first every session. Newest notes near the
 - 2026-05-31 — Adapted prior project's `conventions.md` (Python/FastAPI) to this stack (Spring Boot / Gradle backend, React+Vite / Tailwind / zustand / ky frontend). Created `CLAUDE.md` and `docs/architecture.md` with diagrams. Iterated merge model (UPSERT + null status), dropped `diff_summary`, expanded data-model reasoning.
 - 2026-05-31 — Extracted the Initializr zip into `/backend`; moved spec/reference docs into `docs/` (kept `CLAUDE.md`/`CHANGELOG.md`/`context.md` at root per user); `case_v1.json` → `backend/src/main/resources/`; reference Java samples → `docs/reference/`. Added root `.gitignore`. `git init -b main` + remote `origin`.
 - 2026-05-31 — Downgraded scaffold from Boot 4.0.6 / Gradle 9.5.1 to Boot 3.4.2 / Gradle 8.12; fixed starter names (`web`, `test`). Initial 2 commits pushed to `origin/main`.
+- 2026-06-01 — Built `queries` module: `CreateQueryRequest`/`Query` models, `QueryRepository` (atomic `compute` append, immutable reads), `QueryService` (cross-module case-existence check via `CaseService.findCase`), `QueryController` (`POST /queries`, `GET /queries?caseId=`). Added `CaseService.findCase` + a missing-query-param→400 handler; removed unused `VALIDATION_INVALID_FIELD_PATH`. **Dropped field-path structural validation** (lean per user; a reviewer may query a `missing_fields` entry, and the UI sends a rendered path) — `fieldPath` is `@NotBlank` only. 31 tests green; `/super-review` flagged only doc-drift (fixed) + a snapshot-immutability test (added). Live-curl verified.
 - 2026-05-31 — Built `cases` module: `JsonLoader`, models (`ExtractedField`/`MergedField`/`CaseState`/`FollowUpRequest`), `CaseRepository` (atomic `compute`), pure `MergeService` (null→baseline + diff), `CaseSeeder`, `CaseService`, `CaseController`. Strict parsing (`fail-on-unknown-properties`). 24 tests green. Ran `/super-review` (no criticals); applied fixes: 404-before-validation (atomic), reason-code constants, seeder `case_id` guard, +4 tests (new-section, blank-value, null-section, invalid-leaf-on-unknown-case). Known gap (accepted): no concurrency test (#9) — atomicity is structural via `compute`.
 - 2026-05-31 — Wired `common/`: `ApiResponse`/`ApiError`/`ResponseFactory` envelope, `ErrorCode`/`ApiException`/`GlobalExceptionHandler`, `TraceIdFilter` + `TraceContext` (adapted `TraceIdGenerator`), `Constants`. `application.properties`→`application.yml` (port 8080, snake_case, non_null, trace-id log pattern). Added `health` module (`GET /health`). Tests: `TraceIdGeneratorTest`, `HealthControllerTest` (success/inbound-trace/404). Build green; live-curl verified on :8081.
 
 ## Next (ranked)
 
-1. `queries` module (`POST /queries` with `{caseId, fieldPath, question}`, `GET /queries?caseId=`); `fieldPath` validated against the current case → `validation.invalid_field_path`.
-2. Backend README (4 curl examples — use `--data @file.json` to avoid the shell `§` gotcha below).
-3. Ops: Dockerfile, compose, scripts, Makefile, runbook.
-4. Frontend (live phase): theme → shared primitives → `case-review` module.
+1. Backend README: 4 `curl` examples (one per endpoint — use `--data @file.json` to avoid the shell `§` gotcha below), run instructions, AI-tools note.
+2. Phase 1B ops: Dockerfile, docker-compose, `ops/run.sh|backup.sh|restore.sh`, Makefile, "Operations" runbook.
+3. Frontend (live phase): theme → shared primitives → `case-review` module.
 
 ## Build setup (confirmed 2026-05-31)
 

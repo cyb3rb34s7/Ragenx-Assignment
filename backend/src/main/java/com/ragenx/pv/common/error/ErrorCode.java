@@ -13,7 +13,6 @@ public enum ErrorCode {
 
     VALIDATION_MISSING_FIELD("validation.missing_field", HttpStatus.BAD_REQUEST),
     VALIDATION_BAD_FORMAT("validation.bad_format", HttpStatus.BAD_REQUEST),
-    VALIDATION_INVALID_FIELD_PATH("validation.invalid_field_path", HttpStatus.BAD_REQUEST),
     CASE_NOT_FOUND("case.not_found", HttpStatus.NOT_FOUND),
     CASE_INVALID_FOLLOW_UP("case.invalid_follow_up", HttpStatus.BAD_REQUEST),
     QUERY_CASE_NOT_FOUND("query.case_not_found", HttpStatus.NOT_FOUND),

@@ -281,7 +281,7 @@ classDiagram
 
 - **Storage:** `CaseRepository` holds `Map<caseId, CaseState>` (current merged case). `QueryRepository` holds `Map<caseId, List<Query>>`. Both `ConcurrentHashMap`-backed. The repository is the **only** stateful component; it performs the seed/follow-up read-modify-write **atomically** via `compute(caseId, current -> merge(current, incoming))`, so concurrent follow-ups can't clobber each other and the services stay stateless.
 - **Two services:** `MergeService` is a **pure** function (no deps → unit-testable with no mocks); `CaseService` orchestrates (find/404, `seedInitial`, `applyFollowUp`). See §4.4.
-- **`fieldPath`** for a query is `"<section>.<field>"`, e.g. `patient.weight_kg`. Validated against the current case; unknown path → `validation.invalid_field_path`.
+- **`fieldPath`** for a query is `"<section>.<field>"`, e.g. `patient.weight_kg`. Required (non-blank) but **not** structurally validated against the case: a reviewer may legitimately query a field listed in `missing_fields` (not in `sections`), and the UI sends a path it just rendered. Only the case's existence is checked.
 
 ---
 
@@ -291,7 +291,7 @@ classDiagram
 |---|---|---|---|---|
 | 1 | `GET /cases/{caseId}` | Latest version | `Case` | `case.not_found` |
 | 2 | `POST /cases/{caseId}/follow-ups` | Merge follow-up | merged response (§4.3) | `case.not_found`, `case.invalid_follow_up`, `validation.*` |
-| 3 | `POST /queries` | Raise a query | created `Query` | `query.case_not_found`, `validation.invalid_field_path`, `validation.missing_field` |
+| 3 | `POST /queries` | Raise a query | created `Query` | `query.case_not_found`, `validation.missing_field` |
 | 4 | `GET /queries?caseId={id}` | List queries | `Query[]` | `validation.missing_field` |
 | 5 | `GET /health` | Liveness | `{status:"UP"}` | — |
 

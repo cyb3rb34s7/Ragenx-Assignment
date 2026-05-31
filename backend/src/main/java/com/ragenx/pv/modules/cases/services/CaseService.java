@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Orchestrates case reads and writes: enforces not-found, validates follow-up content, and
@@ -29,6 +30,11 @@ public class CaseService {
         return caseRepository.find(caseId)
                 .orElseThrow(() -> new ApiException(ErrorCode.CASE_NOT_FOUND,
                         "Case '" + caseId + "' was not found."));
+    }
+
+    /** Non-throwing lookup for cross-module callers (e.g. queries) that decide their own error. */
+    public Optional<CaseState> findCase(String caseId) {
+        return caseRepository.find(caseId);
     }
 
     /** Seeds the initial version (no prior case). Used at startup by the seeder. */

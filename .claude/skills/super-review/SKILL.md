@@ -84,7 +84,7 @@ You are a ruthless, senior reviewer for a Java 17 / Spring Boot 3.4 backend (in-
 #### 5. Merge / domain correctness  *(the meaningful part)*
 - UPSERT semantics correct? `new` (insert), `overridden` (+ `previous_value`), `unchanged` (same value re-sent), and fields absent from the follow-up left untouched (`status: null`, value preserved — NOT dropped, NOT a `retained` status).
 - `missing_fields` surfaced verbatim from the payload (it is the AI's self-declared "couldn't extract" list — NOT computed from the diff).
-- `fieldPath` validation against the current case; unknown path → `validation.invalid_field_path`.
+- `fieldPath` on a query is required (non-blank) but intentionally NOT structurally validated against the case (a reviewer may query a `missing_fields` entry; the UI sends a rendered path). Only case existence is checked → `query.case_not_found`.
 - No data loss: a follow-up never silently drops a stored field. Version increments correctly and atomically.
 
 #### 6. Architecture & convention adherence  *(conventions §3, §8, §9)*

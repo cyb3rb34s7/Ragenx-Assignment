@@ -222,7 +222,7 @@ One envelope shape for success and error, so the frontend branches once, globall
 
 `<domain>.<reason>`, defined once as a backend enum (`common/error/ErrorCode.java`) and mirrored as a frontend `as const` union:
 
-- `validation.missing_field`, `validation.bad_format`, `validation.invalid_field_path`
+- `validation.missing_field`, `validation.bad_format`
 - `case.not_found`, `case.invalid_follow_up`
 - `query.case_not_found`
 - `system.unexpected`
