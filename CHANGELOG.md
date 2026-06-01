@@ -4,6 +4,18 @@ Append-only, newest at top. Per-entry format in `docs/conventions.md §2.3`.
 
 ---
 
+## 2026-06-01 — frontend scaffold (Vite + React-TS + Tailwind v4 + Router)
+
+**What changed:** Scaffolded `/frontend` with Vite (React + TypeScript). Added Tailwind v4 via `@tailwindcss/vite` with brand tokens (`navy #0C1A36`, `brand #0077B6`, `teal #00C2E0`) + confidence-band colors in `src/index.css` `@theme`. Wired React Router (`/` → `/cases/PV-2026-0451` → `ReviewPage` placeholder). Installed `ky` + `zustand` for the live build. `npm run build` green.
+
+**Why:** Phase 2 prep — "have the toolchain ready" so the live 45 min is pure feature-building.
+
+**Files touched:** `frontend/**` (Vite scaffold), `vite.config.ts`, `src/{index.css,main.tsx,App.tsx,pages/ReviewPage.tsx}`.
+
+**Reverts cleanly?:** yes.
+
+---
+
 ## 2026-06-01 — dev CORS for the Phase 2 frontend
 
 **What changed:** Added `common/config/WebConfig.java` — permissive CORS (`/**`, any origin, GET/POST/PUT/OPTIONS, exposes `X-Trace-Id`) so the React dev server (a different origin) can call the API from the browser during the live build.

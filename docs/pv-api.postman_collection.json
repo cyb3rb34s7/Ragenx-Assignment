@@ -1,0 +1,93 @@
+{
+  "info": {
+    "name": "PV Case Processing API",
+    "description": "Local API for the PV case-processing backend. Base URL and case id are collection variables. Service runs on http://localhost:8412.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8412" },
+    { "key": "caseId", "value": "PV-2026-0451" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+      }
+    },
+    {
+      "name": "Get case (latest)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/cases/{{caseId}}", "host": ["{{baseUrl}}"], "path": ["cases", "{{caseId}}"] }
+      }
+    },
+    {
+      "name": "List all cases (backup)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/cases", "host": ["{{baseUrl}}"], "path": ["cases"] }
+      }
+    },
+    {
+      "name": "Apply follow-up (merge)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "{{baseUrl}}/cases/{{caseId}}/follow-ups",
+          "host": ["{{baseUrl}}"],
+          "path": ["cases", "{{caseId}}", "follow-ups"]
+        },
+        "body": {
+          "mode": "raw",
+          "options": { "raw": { "language": "json" } },
+          "raw": "{\n  \"case_classification\": \"significant\",\n  \"extracted_at\": \"2026-05-20T11:00:00Z\",\n  \"source_document\": \"follow_up_1_PV-2026-0451.pdf\",\n  \"sections\": {\n    \"patient\": {\n      \"weight_kg\": { \"value\": \"80\", \"confidence\": 0.90, \"source\": \"p.3 §2\" }\n    },\n    \"adverse_event\": {\n      \"outcome\": { \"value\": \"Recovered\", \"confidence\": 0.83, \"source\": \"p.5 §1\" },\n      \"recovery_date\": { \"value\": \"2026-04-01\", \"confidence\": 0.88, \"source\": \"p.5 §2\" }\n    }\n  },\n  \"missing_fields\": [\"adverse_event.causality_assessment\"]\n}"
+        }
+      }
+    },
+    {
+      "name": "Raise query",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/queries", "host": ["{{baseUrl}}"], "path": ["queries"] },
+        "body": {
+          "mode": "raw",
+          "options": { "raw": { "language": "json" } },
+          "raw": "{\n  \"case_id\": \"{{caseId}}\",\n  \"field_path\": \"adverse_event.onset_date\",\n  \"question\": \"Please confirm the onset date against the source document.\"\n}"
+        }
+      }
+    },
+    {
+      "name": "List queries for a case",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/queries?caseId={{caseId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["queries"],
+          "query": [{ "key": "caseId", "value": "{{caseId}}" }]
+        }
+      }
+    },
+    {
+      "name": "Import / replace case (restore)",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/cases/{{caseId}}", "host": ["{{baseUrl}}"], "path": ["cases", "{{caseId}}"] },
+        "body": {
+          "mode": "raw",
+          "options": { "raw": { "language": "json" } },
+          "raw": "{\n  \"case_id\": \"{{caseId}}\",\n  \"version\": 9,\n  \"case_classification\": \"significant\",\n  \"extracted_at\": \"2026-05-20T11:00:00Z\",\n  \"source_document\": \"restored.pdf\",\n  \"sections\": {\n    \"patient\": {\n      \"age\": {\n        \"value\": \"62\", \"confidence\": 0.91, \"source\": \"p.2 §1\",\n        \"status\": \"overridden\",\n        \"previous_value\": { \"value\": \"60\", \"confidence\": 0.80, \"source\": \"p.2 §1\" }\n      }\n    }\n  },\n  \"missing_fields\": []\n}"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+/* Brand + semantic tokens (Tailwind v4 @theme → usable as bg-navy, text-brand, etc.). */
+@theme {
+  --color-navy: #0c1a36;
+  --color-brand: #0077b6;
+  --color-teal: #00c2e0;
+
+  /* AI-confidence bands: low <0.80, medium 0.80–0.90, high >0.90 */
+  --color-confidence-low: #dc2626;    /* red   */
+  --color-confidence-medium: #d97706; /* amber */
+  --color-confidence-high: #16a34a;   /* green */
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background-color: #f8fafc;
+  color: var(--color-navy);
+}

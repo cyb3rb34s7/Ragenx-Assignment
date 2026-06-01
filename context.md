@@ -23,8 +23,8 @@ Running state of the build. Read this first every session. Newest notes near the
 
 ## Next (ranked)
 
-1. Frontend (Phase 2, live): theme → shared primitives → `case-review` module.
-2. After the live session: commit the Claude Code session log to `/claude-code-session.jsonl`.
+1. **Phase 2 (live):** build the reviewer screen in `/frontend` (scaffold ready — Vite/React-TS/Tailwind v4/Router/ky/zustand). Start: `cd frontend && npm run dev` (→ :5173); backend on :8412 with CORS. First live action: POST `case_v2_followup_payload.json` to `/cases/PV-2026-0451/follow-ups`.
+2. After the live session: email the updated Claude Code session log (`backups/claude-code-session.jsonl`).
 
 ## Build setup (confirmed 2026-05-31)
 
