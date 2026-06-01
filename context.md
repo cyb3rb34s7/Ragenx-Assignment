@@ -6,13 +6,19 @@ Running state of the build. Read this first every session. Newest notes near the
 
 ## Now
 
-- **Phase 1A + 1B complete.** Backend: 7 endpoints, 39 tests. Ops: Dockerfile (multi-stage, non-root, pinned, 417 MB), docker-compose (+healthcheck, init), `ops/run.sh|backup.sh|restore.sh`, Makefile, root README "Operations" runbook. All `/super-review`'d. Verified live: `docker compose build` + container healthy in 3s + full backup→overwrite→restore round-trip (exact checkpoint). Next: Phase 2 frontend (live).
+- **All three phases shipped & pushed.** Backend (Phase 1A) + ops (Phase 1B) + the Phase 2 **frontend reviewer screen** (Vite/React-TS/Tailwind/ky/zustand) live in `/frontend`, build green, pushed to `origin/main`.
+- **Live-session backend tweaks (pushed):** per-request completion log line in `TraceIdFilter` (trace id now in logs for every request, not just errors); optional `follow_up_number` accepted on follow-ups and reflected on the case (the real v2 payload sends it; strict parsing would otherwise 400).
+- **Pending:** card-layout redesign of the reviewer screen (`Section` + `FieldCard`, UI-only) — plan approved, not yet built.
+- **Stray file to resolve:** `docs/claude-code-session.jsonl` is untracked and NOT gitignored — the private session log must NOT be committed to the public repo (we share it by email). Decide: delete it, or gitignore it. The canonical copy lives in the gitignored `backups/`.
+- **Phase 1A + 1B detail.** Backend: 7 endpoints, 39 tests. Ops: Dockerfile (multi-stage, non-root, pinned, 417 MB), docker-compose (+healthcheck, init), `ops/run.sh|backup.sh|restore.sh`, Makefile, root README "Operations" runbook. All `/super-review`'d; verified live.
 - **Known gap (accepted):** `CaseRepository.put` (PUT/import) and `compute` (follow-up/seed) are each atomic per key but not mutually serialized — a concurrent PUT + follow-up on the same case could lost-update. Acceptable: restore runs against a quiesced service, single in-memory case. Same class as the "no concurrency test" note.
 - **`jq` is NOT installed on this dev box** — `backup.sh`/`restore.sh` require it (and `curl`). The scripts will check for both and fail gracefully; the runbook lists them as prerequisites (install via choco/scoop/winget locally, or rely on the grader's Unix env).
 - **Port:** the service's known port is **8412** (changed from 8080 on 2026-06-01 — 8080 is permanently occupied by a global Docker container on the dev machine). All run/ops/README references use 8412.
 
 ## Done
 
+- 2026-06-01 — Phase 2 frontend **reviewer screen** built and pushed: `useCase` hook (fetch), zustand UI store (sort/filter/classification/modal), `FieldRow` + `RaiseQueryModal`, full `ReviewPage` (grouped sections, confidence color-coding, overridden conflict view with `previous_value`, raise-query → POST `/queries`, sort-low-first + conflicts-only filter, missing_fields banner, loading/error states). ky envelope client + snake_case types. Replaced the empty workspace wholesale with the completed build.
+- 2026-06-01 — Backend live-session tweaks (pushed): `TraceIdFilter` logs a per-request completion line (method/path/status/latency) with the trace id; optional `follow_up_number` added to `FollowUpRequest` + reflected on `CaseState` (carried through both merge branches). Dev CORS (`WebConfig`) for the React origin.
 - 2026-05-31 — Read the brief (`BUILD_EXERCISE_BRIEF.md`), email, and `case_v1.json` end to end; explained requirements back to the user.
 - 2026-05-31 — Adapted prior project's `conventions.md` (Python/FastAPI) to this stack (Spring Boot / Gradle backend, React+Vite / Tailwind / zustand / ky frontend). Created `CLAUDE.md` and `docs/architecture.md` with diagrams. Iterated merge model (UPSERT + null status), dropped `diff_summary`, expanded data-model reasoning.
 - 2026-05-31 — Extracted the Initializr zip into `/backend`; moved spec/reference docs into `docs/` (kept `CLAUDE.md`/`CHANGELOG.md`/`context.md` at root per user); `case_v1.json` → `backend/src/main/resources/`; reference Java samples → `docs/reference/`. Added root `.gitignore`. `git init -b main` + remote `origin`.
@@ -23,8 +29,9 @@ Running state of the build. Read this first every session. Newest notes near the
 
 ## Next (ranked)
 
-1. **Phase 2 (live):** build the reviewer screen in `/frontend` (scaffold ready — Vite/React-TS/Tailwind v4/Router/ky/zustand). Start: `cd frontend && npm run dev` (→ :5173); backend on :8412 with CORS. First live action: POST `case_v2_followup_payload.json` to `/cases/PV-2026-0451/follow-ups`.
-2. After the live session: email the updated Claude Code session log (`backups/claude-code-session.jsonl`).
+1. **Card-layout redesign** of the reviewer screen — `Section` + `FieldCard` dumb components, fields as cards in a responsive grid (value + colored confidence pill + status badge; overridden cards show previous value + centered Raise Query). UI-only; plan approved.
+2. Resolve `docs/claude-code-session.jsonl` (delete or gitignore — keep the private log out of the public repo).
+3. Email the latest session log (`backups/claude-code-session.jsonl`).
 
 ## Build setup (confirmed 2026-05-31)
 

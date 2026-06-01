@@ -4,6 +4,54 @@ Append-only, newest at top. Per-entry format in `docs/conventions.md §2.3`.
 
 ---
 
+## 2026-06-01 — Phase 2 frontend reviewer screen
+
+**What changed:** Built the reviewer screen and made it `/frontend`: `useCase` hook (fetch + loading/error), zustand UI store (sort/filter/classification/modal), `FieldRow` + `RaiseQueryModal`, and a full `ReviewPage` — fields grouped by section, confidence color-coding, the `overridden` conflict view (new value + struck-through `previous_value`), Raise Query → modal → POST `/queries`, sort-low-first + conflicts-only filter, `missing_fields` banner, loading/error states. ky envelope client + snake_case types under `shared/api/`. Replaced the empty workspace wholesale with the completed build; `npm run build` green.
+
+**Why:** Phase 2 deliverable — the reviewer's validation screen, calling the backend.
+
+**Files touched:** `frontend/src/{pages/ReviewPage.tsx, modules/case-review/*, shared/api/*, index.css}`.
+
+**Reverts cleanly?:** yes.
+
+---
+
+## 2026-06-01 — accept optional follow_up_number, surface on case
+
+**What changed:** Added optional `followUpNumber` to `FollowUpRequest` (the real v2 payload sends `follow_up_number`; strict parsing would otherwise 400 it) and reflected it on `CaseState`, carried through both `MergeService` branches. `version` stays the server counter; `follow_up_number` rides alongside.
+
+**Why:** Match the actual live follow-up payload shape without losing the field.
+
+**Files touched:** `modules/cases/models/{FollowUpRequest,CaseState}.java`, `modules/cases/services/MergeService.java`.
+
+**Reverts cleanly?:** yes.
+
+---
+
+## 2026-06-01 — per-request completion log with trace id
+
+**What changed:** `TraceIdFilter` now logs one access-style line per request (method, path, status, latency) while the trace id is still in the MDC — so the trace id appears in logs for successful requests, not just errors.
+
+**Why:** Make trace-id propagation observable end to end (the prior setup only logged the id on errors).
+
+**Files touched:** `common/trace/TraceIdFilter.java`.
+
+**Reverts cleanly?:** yes.
+
+---
+
+## 2026-06-01 — frontend API client + env config
+
+**What changed:** Added `frontend/src/shared/api/{client.ts,types.ts}` — a tiny ky client that unwraps the `{success, data, trace_id}` envelope (branches on `success` via `throwHttpErrors:false`), throws a typed `ApiError(code, message, traceId)`, and exposes `getCase`/`raiseQuery`/`listQueries`. TS types mirror the backend snake_case JSON 1:1. Base URL comes from `VITE_API_BASE_URL` (`.env`, gitignored; `.env.example` committed) with a flagged dev-default fallback. Added `src/vite-env.d.ts` for the env type. Noted ky v2's `prefixUrl`→`prefix` rename.
+
+**Why:** Phase 2 prep — the fiddly integration plumbing done ahead of the live build.
+
+**Files touched:** `frontend/src/shared/api/*`, `frontend/.env.example`, `frontend/src/vite-env.d.ts`, `frontend/src/shared/api/client.ts`.
+
+**Reverts cleanly?:** yes.
+
+---
+
 ## 2026-06-01 — frontend scaffold (Vite + React-TS + Tailwind v4 + Router)
 
 **What changed:** Scaffolded `/frontend` with Vite (React + TypeScript). Added Tailwind v4 via `@tailwindcss/vite` with brand tokens (`navy #0C1A36`, `brand #0077B6`, `teal #00C2E0`) + confidence-band colors in `src/index.css` `@theme`. Wired React Router (`/` → `/cases/PV-2026-0451` → `ReviewPage` placeholder). Installed `ky` + `zustand` for the live build. `npm run build` green.
