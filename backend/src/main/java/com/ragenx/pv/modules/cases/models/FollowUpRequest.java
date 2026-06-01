@@ -21,6 +21,7 @@ public class FollowUpRequest {
 
     String caseId;
     Integer version;
+    Integer followUpNumber;        // optional — the source's follow-up sequence (follow_up_number)
     String caseClassification;
     String extractedAt;
     String sourceDocument;

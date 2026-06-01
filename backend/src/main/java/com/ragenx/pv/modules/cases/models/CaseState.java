@@ -20,6 +20,7 @@ public class CaseState {
 
     String caseId;
     int version;
+    Integer followUpNumber;        // the source's follow-up sequence (null on the initial case)
     String caseClassification;
     String extractedAt;
     String sourceDocument;
