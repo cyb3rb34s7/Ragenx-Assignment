@@ -4,6 +4,20 @@ Append-only, newest at top. Per-entry format in `docs/conventions.md §2.3`.
 
 ---
 
+## 2026-06-01 — dev CORS for the Phase 2 frontend
+
+**What changed:** Added `common/config/WebConfig.java` — permissive CORS (`/**`, any origin, GET/POST/PUT/OPTIONS, exposes `X-Trace-Id`) so the React dev server (a different origin) can call the API from the browser during the live build.
+
+**Why:** Phase 2 prep — without CORS the browser blocks cross-origin calls from the Vite dev server to `:8412`.
+
+**Verification:** build green; live preflight + GET return the expected `Access-Control-Allow-Origin` and `Access-Control-Expose-Headers: X-Trace-Id`.
+
+**Files touched:** `backend/src/main/java/com/ragenx/pv/common/config/WebConfig.java`.
+
+**Reverts cleanly?:** yes.
+
+---
+
 ## 2026-06-01 — remove proprietary brief/email from the public repo
 
 **What changed:** Removed `docs/BUILD_EXERCISE_BRIEF.md` and `docs/Email.md` from the repo (the company's hiring materials shouldn't be published in a public repo). Updated the dangling references in `CLAUDE.md` and `docs/conventions.md` to note the brief is held privately. The Claude Code session log is shared with the reviewers by email (not committed) for the same reason.
